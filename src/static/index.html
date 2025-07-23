@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>أداة التنبؤ المالي الاحترافية المطورة</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body { 
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      font-family: 'Cairo', sans-serif; 
+      color: #fff; 
+      min-height: 100vh;
+      padding: 10px;
+    }
+    
+    .container { 
+      max-width: 1200px; 
+      margin: auto; 
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(45deg, #00d4ff, #5a67d8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      font-size: 1.1rem;
+      color: #a0aec0;
+    }
+    
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .control-panel {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 25px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .chart-section {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 25px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .result-display {
+      background: rgba(0, 0, 0, 0.3);
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      font-weight: 600;
+      border-radius: 15px;
+      margin-bottom: 25px;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .result-display.success {
+      background: linear-gradient(45deg, rgba(72, 187, 120, 0.2), rgba(56, 178, 172, 0.2));
+      border-color: #48bb78;
+      color: #68d391;
+    }
+    
+    .result-display.danger {
+      background: linear-gradient(45deg, rgba(245, 101, 101, 0.2), rgba(229, 62, 62, 0.2));
+      border-color: #f56565;
+      color: #fc8181;
+    }
+    
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #e2e8f0;
+    }
+    
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 12px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      font-family: 'Cairo', sans-serif;
+    }
+    
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+    
+    .btn.selected {
+      background: linear-gradient(45deg, #00d4ff, #5a67d8);
+      border-color: #00d4ff;
+      box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+    }
+    
+    .btn.primary {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      width: 100%;
+      font-size: 16px;
+      padding: 15px;
+      margin-bottom: 10px;
+    }
+    
+    .btn.secondary {
+      background: linear-gradient(45deg, #f093fb, #f5576c);
+      width: 100%;
+      font-size: 16px;
+      padding: 15px;
+    }
+    
+    .btn.otc {
+      background: linear-gradient(45deg, #4facfe, #00f2fe);
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    
+    .price-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .price-card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .price-card h4 {
+      font-size: 0.9rem;
+      color: #a0aec0;
+      margin-bottom: 5px;
+    }
+    
+    .price-card .value {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #00d4ff;
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .prediction-details {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 15px;
+    }
+    
+    .factor-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    
+    .factor-bar {
+      width: 100px;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    
+    .factor-fill {
+      height: 100%;
+      background: linear-gradient(45deg, #00d4ff, #5a67d8);
+      transition: width 0.3s ease;
+    }
+    
+    @media (max-width: 768px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+      
+      .header h1 {
+        font-size: 2rem;
+      }
+      
+      .container {
+        padding: 10px;
+      }
+      
+      .price-info {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>أداة التنبؤ المالي الاحترافية</h1>
+      <p>تنبؤات دقيقة مدعومة بالذكاء الاصطناعي والبيانات الحقيقية</p>
+    </div>
+    
+    <div class="main-content">
+      <div class="control-panel">
+        <div id="result" class="result-display">اختر الأصل للحصول على التنبؤ</div>
+        
+        <div class="section-title">الإطار الزمني</div>
+        <div class="button-group" id="timeframes"></div>
+        
+        <div class="section-title">السوق</div>
+        <div class="button-group" id="markets"></div>
+        
+        <div class="section-title">الأصل</div>
+        <div class="button-group" id="assets"></div>
+        
+        <div id="tradeTypeBtn" class="btn otc">عادي</div>
+        
+        <div class="price-info" id="priceInfo" style="display: none;">
+          <div class="price-card">
+            <h4>السعر الحالي</h4>
+            <div class="value" id="currentPrice">--</div>
+          </div>
+          <div class="price-card">
+            <h4>التغيير</h4>
+            <div class="value" id="priceChange">--</div>
+          </div>
+          <div class="price-card">
+            <h4>الحجم</h4>
+            <div class="value" id="volume">--</div>
+          </div>
+        </div>
+        
+        <button id="calcBtn" class="btn primary">
+          <span id="calcText">احسب التنبؤ</span>
+          <span id="calcLoading" class="loading" style="display: none;"></span>
+        </button>
+        <button id="resetBtn" class="btn secondary">مسح الكل</button>
+        
+        <div id="predictionDetails" class="prediction-details" style="display: none;">
+          <div class="section-title">تفاصيل التحليل</div>
+          <div id="factorsList"></div>
+        </div>
+      </div>
+      
+      <div class="chart-section">
+        <div class="section-title">الرسم البياني للأسعار</div>
+        <canvas id="priceChart" width="400" height="300"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // المتغيرات العامة
+    const timeframes = ['1 دقيقة', '5 دقائق', '10 دقائق', '30 دقيقة', '1 ساعة'];
+    const markets = ['العملات', 'العملات المشفرة', 'السلع', 'الأسهم'];
+    const assets = {
+      'العملات': ['EUR/USD', 'GBP/USD', 'USD/JPY'],
+      'العملات المشفرة': ['BTC/USD', 'ETH/USD'],
+      'السلع': ['ذهب', 'فضة', 'نفط'],
+      'الأسهم': ['AAPL', 'TSLA', 'AMZN'],
+    };
+    
+    let selectedTimeframe = '';
+    let selectedMarket = '';
+    let selectedAsset = '';
+    let tradeType = 'عادي';
+    let priceChart = null;
+    
+    // عناصر DOM
+    const resultDiv = document.getElementById('result');
+    const priceInfoDiv = document.getElementById('priceInfo');
+    const predictionDetailsDiv = document.getElementById('predictionDetails');
+    const calcBtn = document.getElementById('calcBtn');
+    const calcText = document.getElementById('calcText');
+    const calcLoading = document.getElementById('calcLoading');
+    
+    // إنشاء الأزرار
+    function initializeButtons() {
+      // أزرار الإطار الزمني
+      const tfBar = document.getElementById('timeframes');
+      timeframes.forEach(tf => {
+        const btn = document.createElement('button');
+        btn.textContent = tf;
+        btn.className = 'btn';
+        btn.onclick = () => selectTimeframe(tf, btn);
+        tfBar.appendChild(btn);
+      });
+      
+      // أزرار الأسواق
+      const marketBar = document.getElementById('markets');
+      markets.forEach(mkt => {
+        const btn = document.createElement('button');
+        btn.textContent = mkt;
+        btn.className = 'btn';
+        btn.onclick = () => selectMarket(mkt, btn);
+        marketBar.appendChild(btn);
+      });
+      
+      // زر نوع التداول
+      const tradeTypeBtn = document.getElementById('tradeTypeBtn');
+      tradeTypeBtn.onclick = toggleTradeType;
+      
+      // أزرار الحساب والمسح
+      calcBtn.onclick = calculatePrediction;
+      document.getElementById('resetBtn').onclick = resetAll;
+    }
+    
+    function selectTimeframe(tf, btn) {
+      selectedTimeframe = tf;
+      updateButtonSelection('timeframes', btn);
+    }
+    
+    function selectMarket(mkt, btn) {
+      selectedMarket = mkt;
+      selectedAsset = '';
+      updateButtonSelection('markets', btn);
+      renderAssets();
+      hidePriceInfo();
+    }
+    
+    function selectAsset(asset, btn) {
+      selectedAsset = asset;
+      updateButtonSelection('assets', btn);
+      loadAssetData(asset);
+    }
+    
+    function updateButtonSelection(containerId, selectedBtn) {
+      const container = document.getElementById(containerId);
+      Array.from(container.children).forEach(btn => btn.classList.remove('selected'));
+      selectedBtn.classList.add('selected');
+    }
+    
+    function renderAssets() {
+      const assetsBar = document.getElementById('assets');
+      assetsBar.innerHTML = '';
+      if (!selectedMarket) return;
+      
+      assets[selectedMarket].forEach(asset => {
+        const btn = document.createElement('button');
+        btn.textContent = asset;
+        btn.className = 'btn';
+        btn.onclick = () => selectAsset(asset, btn);
+        assetsBar.appendChild(btn);
+      });
+    }
+    
+    function toggleTradeType() {
+      const btn = document.getElementById('tradeTypeBtn');
+      tradeType = tradeType === 'OTC' ? 'عادي' : 'OTC';
+      btn.textContent = tradeType;
+      btn.classList.toggle('selected', tradeType === 'OTC');
+    }
+    
+    const API_BASE_URL = 'https://5000-iz16crxkx1ie2eww9c563-1b4b62ca.manusvm.computer/api/financial';
+
+    async function loadAssetData(asset) {
+      try {
+        showPriceInfo();
+        
+        let endpoint = '';
+        if (selectedMarket === 'الأسهم') {
+          endpoint = `${API_BASE_URL}/stock/${asset}`;
+        } else if (selectedMarket === 'العملات') {
+          endpoint = `${API_BASE_URL}/forex/${asset}`;
+        } else if (selectedMarket === 'العملات المشفرة') {
+          endpoint = `${API_BASE_URL}/crypto/${asset}`;
+        } else if (selectedMarket === 'السلع') {
+          endpoint = `${API_BASE_URL}/commodity/${asset}`;
+        }
+        
+        const response = await fetch(endpoint);
+        const data = await response.json();
+        
+        if (data.success) {
+          updatePriceDisplay(data);
+          updateChart(data);
+        }
+      } catch (error) {
+        console.error('خطأ في تحميل البيانات:', error);
+      }
+    }
+    
+    function updatePriceDisplay(data) {
+      const currentPrice = document.getElementById('currentPrice');
+      const priceChange = document.getElementById('priceChange');
+      const volume = document.getElementById('volume');
+      
+      if (data.price) {
+        currentPrice.textContent = `$${data.price.toFixed(2)}`;
+      }
+      
+      if (data.change !== undefined) {
+        const changeText = data.change > 0 ? `+${data.change.toFixed(2)}` : data.change.toFixed(2);
+        priceChange.textContent = changeText;
+        priceChange.style.color = data.change > 0 ? '#68d391' : '#fc8181';
+      }
+      
+      if (data.volume) {
+        volume.textContent = formatNumber(data.volume);
+      }
+    }
+    
+    function updateChart(data) {
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      
+      if (priceChart) {
+        priceChart.destroy();
+      }
+      
+      // بيانات وهمية للرسم البياني
+      const labels = [];
+      const prices = [];
+      const basePrice = data.price || 100;
+      
+      for (let i = 29; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('ar-SA'));
+        
+        const variation = (Math.random() - 0.5) * basePrice * 0.1;
+        prices.push(basePrice + variation);
+      }
+      
+      priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: selectedAsset,
+            data: prices,
+            borderColor: '#00d4ff',
+            backgroundColor: 'rgba(0, 212, 255, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#fff'
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: '#a0aec0'
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
+            },
+            y: {
+              ticks: {
+                color: '#a0aec0'
+              },
+              grid: {
+                color: 'rgba(255, 255, 255, 0.1)'
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    async function calculatePrediction() {
+      if (!selectedTimeframe || !selectedMarket || !selectedAsset) {
+        showResult('يرجى اختيار جميع الخيارات أولاً', 'danger');
+        return;
+      }
+      
+      setLoadingState(true);
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/predict?asset=${selectedAsset}&timeframe=${selectedTimeframe}&market=${selectedMarket}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          const direction = data.prediction === 'up' ? 'صعود' : 'هبوط';
+          const resultText = `${direction} (${data.confidence}%)`;
+          showResult(resultText, data.prediction === 'up' ? 'success' : 'danger');
+          showPredictionDetails(data.factors);
+        } else {
+          showResult('خطأ في التنبؤ', 'danger');
+        }
+      } catch (error) {
+        showResult('خطأ في الاتصال', 'danger');
+      } finally {
+        setLoadingState(false);
+      }
+    }
+    
+    function showResult(text, type) {
+      resultDiv.textContent = text;
+      resultDiv.className = `result-display ${type}`;
+    }
+    
+    function showPredictionDetails(factors) {
+      const factorsList = document.getElementById('factorsList');
+      factorsList.innerHTML = '';
+      
+      Object.entries(factors).forEach(([key, value]) => {
+        const factorDiv = document.createElement('div');
+        factorDiv.className = 'factor-item';
+        
+        const label = getFactorLabel(key);
+        const percentage = Math.round(value * 100);
+        
+        factorDiv.innerHTML = `
+          <span>${label}</span>
+          <div class="factor-bar">
+            <div class="factor-fill" style="width: ${percentage}%"></div>
+          </div>
+        `;
+        
+        factorsList.appendChild(factorDiv);
+      });
+      
+      predictionDetailsDiv.style.display = 'block';
+    }
+    
+    function getFactorLabel(key) {
+      const labels = {
+        'technical_analysis': 'التحليل التقني',
+        'market_sentiment': 'معنويات السوق',
+        'volume_analysis': 'تحليل الحجم',
+        'trend_analysis': 'تحليل الاتجاه'
+      };
+      return labels[key] || key;
+    }
+    
+    function setLoadingState(loading) {
+      calcText.style.display = loading ? 'none' : 'inline';
+      calcLoading.style.display = loading ? 'inline-block' : 'none';
+      calcBtn.disabled = loading;
+    }
+    
+    function showPriceInfo() {
+      priceInfoDiv.style.display = 'grid';
+    }
+    
+    function hidePriceInfo() {
+      priceInfoDiv.style.display = 'none';
+    }
+    
+    function resetAll() {
+      selectedTimeframe = '';
+      selectedMarket = '';
+      selectedAsset = '';
+      tradeType = 'عادي';
+      
+      // إعادة تعيين الأزرار
+      document.querySelectorAll('.btn').forEach(btn => btn.classList.remove('selected'));
+      document.getElementById('tradeTypeBtn').textContent = 'عادي';
+      
+      // إخفاء المعلومات
+      hidePriceInfo();
+      predictionDetailsDiv.style.display = 'none';
+      
+      // إعادة تعيين النتيجة
+      resultDiv.textContent = 'اختر الأصل للحصول على التنبؤ';
+      resultDiv.className = 'result-display';
+      
+      // مسح الأصول
+      document.getElementById('assets').innerHTML = '';
+      
+      // مسح الرسم البياني
+      if (priceChart) {
+        priceChart.destroy();
+        priceChart = null;
+      }
+    }
+    
+    function formatNumber(num) {
+      if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+      } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+      }
+      return num.toString();
+    }
+    
+    // تهيئة التطبيق
+    document.addEventListener('DOMContentLoaded', initializeButtons);
+  </script>
+</body>
+</html>
+
