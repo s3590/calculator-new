@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>أداة التنبؤ المالي الاحترافية</title>
+  <meta name="viewport" content="width=420">
+  <style>
+    body { background: #222; font-family: Cairo,sans-serif; color: #fff; margin: 0; }
+    .container { max-width: 420px; margin: auto; padding: 16px; }
+    .result { background: #222; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 32px; border-radius: 8px; margin-bottom: 12px; transition: color 0.3s; }
+    .bar { background: #111; padding: 8px; border-radius: 8px; margin-bottom: 8px; }
+    .btn { background: #333; color: #fff; margin: 4px; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; }
+    .btn.selected { background: green; }
+    .btn.asset { background: #333; }
+    .btn.asset.selected { background: green; }
+    .btn.otc { background: blue; width: 100%; }
+    .btn.otc.selected { background: green; }
+    .btn.calc { background: #444; width: 100%; font-size: 18px; margin-bottom: 4px; }
+    .btn.reset { background: #222; width: 100%; }
+    .confidence { font-size: 18px; margin-right: 10px; }
+    @media (max-width: 480px) {
+      .container { padding: 4px; }
+      .result { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div id="result" class="result">النتيجة ستظهر هنا</div>
+    <div class="bar" id="timeframes"></div>
+    <div class="bar" id="markets"></div>
+    <div class="bar" id="assets"></div>
+    <div class="bar"><button id="tradeTypeBtn" class="btn otc">عادي</button></div>
+    <div><button id="calcBtn" class="btn calc">احسب</button></div>
+    <div><button id="resetBtn" class="btn reset">مسح الكل</button></div>
+  </div>
+  <script>
+    const timeframes = ['1 دقيقة', '5 دقائق', '10 دقائق', '30 دقيقة', '1 ساعة'];
+    const markets = ['العملات', 'العملات المشفرة', 'السلع', 'الأسهم'];
+    const assets = {
+      'العملات': ['EUR/USD', 'GBP/USD', 'USD/JPY'],
+      'العملات المشفرة': ['BTC/USD', 'ETH/USD'],
+      'السلع': ['ذهب', 'فضة', 'نفط'],
+      'الأسهم': ['Apple', 'Tesla', 'Amazon'],
+    };
+    let selectedTimeframe = '';
+    let selectedMarket = '';
+    let selectedAsset = '';
+    let tradeType = 'عادي';
+
+    // Render Timeframes
+    const tfBar = document.getElementById('timeframes');
+    timeframes.forEach(tf => {
+      const btn = document.createElement('button');
+      btn.textContent = tf;
+      btn.className = 'btn';
+      btn.onclick = () => {
+        selectedTimeframe = tf;
+        Array.from(tfBar.children).forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      };
+      tfBar.appendChild(btn);
+    });
+
+    // Render Markets
+    const marketBar = document.getElementById('markets');
+    markets.forEach(mkt => {
+      const btn = document.createElement('button');
+      btn.textContent = mkt;
+      btn.className = 'btn';
+      btn.onclick = () => {
+        selectedMarket = mkt;
+        selectedAsset = '';
+        renderAssets();
+        Array.from(marketBar.children).forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      };
+      marketBar.appendChild(btn);
+    });
+
+    // Render Assets
+    const assetsBar = document.getElementById('assets');
+    function renderAssets() {
+      assetsBar.innerHTML = '';
+      if (!selectedMarket) return;
+      assets[selectedMarket].forEach(a => {
+        const btn = document.createElement('button');
+        btn.textContent = a;
+        btn.className = 'btn asset';
+        btn.onclick = () => {
+          selectedAsset = a;
+          Array.from(assetsBar.children).forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+        };
+        assetsBar.appendChild(btn);
+      });
+    }
+
+    // TradeType button
+    const tradeTypeBtn = document.getElementById('tradeTypeBtn');
+    tradeTypeBtn.onclick = () => {
+      tradeType = tradeType === 'OTC' ? 'عادي' : 'OTC';
+      tradeTypeBtn.textContent = tradeType;
+      if (tradeType === 'OTC') {
+        tradeTypeBtn.classList.add('selected');
+        tradeTypeBtn.style.background = 'green';
+      } else {
+        tradeTypeBtn.classList.remove('selected');
+        tradeTypeBtn.style.background = 'blue';
+      }
+    };
+
+    // Result
+    const resultDiv = document.getElementById('result');
+    function showResult(pred, confidence) {
+      resultDiv.textContent = pred === 'up' ? `صعود (${confidence}%)` : `هبوط (${confidence}%)`;
+      resultDiv.style.color = pred === 'up' ? 'green' : 'red';
+    }
+    function resetResult() {
+      resultDiv.textContent = 'النتيجة ستظهر هنا';
+      resultDiv.style.color = '#fff';
+    }
+
+    // Calculate Button
+    document.getElementById('calcBtn').onclick = () => {
+      if (!selectedTimeframe || !selectedMarket || !selectedAsset) return;
+      // هنا يمكنك ربط API حقيقي أو استخدام منطق وهمي
+      // مثال وهمي:
+      const votes = [
+        Math.random() > 0.4 ? 'up' : 'down',
+        Math.random() > 0.5 ? 'up' : 'down',
+        Math.random() > 0.45 ? 'up' : 'down',
+        Math.random() > 0.55 ? 'up' : 'down'
+      ];
+      const upVotes = votes.filter(v => v === 'up').length;
+      const downVotes = votes.filter(v => v === 'down').length;
+      const pred = upVotes > downVotes ? 'up' : 'down';
+      const conf = Math.round((Math.max(upVotes, downVotes) / votes.length) * 100);
+      showResult(pred, conf);
+    };
+
+    // Reset
+    document.getElementById('resetBtn').onclick = () => {
+      selectedTimeframe = '';
+      selectedMarket = '';
+      selectedAsset = '';
+      tradeType = 'عادي';
+      Array.from(tfBar.children).forEach(b => b.classList.remove('selected'));
+      Array.from(marketBar.children).forEach(b => b.classList.remove('selected'));
+      renderAssets();
+      tradeTypeBtn.textContent = 'عادي';
+      tradeTypeBtn.classList.remove('selected');
+      tradeTypeBtn.style.background = 'blue';
+      resetResult();
+    };
+  </script>
+</body>
+</html>
