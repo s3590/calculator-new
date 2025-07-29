@@ -1,9 +1,8 @@
-import sys
 import os
+import sys
 sys.path.append('/opt/.manus/.sandbox-runtime')
 
 from flask import Blueprint, jsonify, request
-from data_api import ApiClient
 from src.technical_indicators import PredictionEngine
 from src.ai_engine import AIFinancialEngine
 import requests
@@ -13,9 +12,6 @@ import time
 import asyncio
 
 financial_bp = Blueprint('financial', __name__)
-
-# إعداد عميل API لـ Yahoo Finance
-api_client = ApiClient()
 
 # إنشاء محركات التحليل المتقدمة
 prediction_engine = PredictionEngine()
