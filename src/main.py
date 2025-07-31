@@ -16,12 +16,13 @@ CORS(app)
 try:
     from src.routes.financial_data import financial_bp
     app.register_blueprint(financial_bp, url_prefix='/api/financial')
+    print("✅ تم تسجيل financial_bp بنجاح")
 except ImportError as e:
-    print(f"Warning: Could not import financial_data blueprint: {e}")
+    print(f"⚠️ تحذير: لا يمكن استيراد financial_data blueprint: {e}")
 
 @app.route('/api/test')
 def test():
-    return jsonify({"status": "success", "message": "API is working"})
+    return jsonify({"status": "success", "message": "API is working", "version": "2.0"})
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')

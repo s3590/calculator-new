@@ -3,8 +3,7 @@ import sys
 sys.path.append('/opt/.manus/.sandbox-runtime')
 
 from flask import Blueprint, jsonify, request
-from src.technical_indicators import PredictionEngine
-from src.ai_engine import AIFinancialEngine
+from src.financial_data_service import FinancialDataService
 import requests
 import json
 from datetime import datetime, timedelta
@@ -13,9 +12,140 @@ import asyncio
 
 financial_bp = Blueprint('financial', __name__)
 
-# إنشاء محركات التحليل المتقدمة
-prediction_engine = PredictionEngine()
-ai_engine = AIFinancialEngine()
+# إنشاء خدمة البيانات المالية
+financial_service = FinancialDataService()
+
+@financial_bp.route('/predict', methods=['POST'])
+def predict():
+    """
+    نقطة نهاية التنبؤ المالي مع البيانات الحقيقية
+    """
+    try:
+        data = request.get_json()
+        
+        # استخراج البيانات من الطلب
+        timeframe = data.get('timeframe', '1m')
+        market = data.get('market', 'forex')
+        asset = data.get('asset', 'EUR/USD')
+        
+        # الحصول على البيانات المالية الحقيقية
+        asset_data = financial_service.get_asset_data(asset, market, timeframe)
+        
+        if not asset_data:
+            return jsonify({
+                'success': False,
+                'error': 'فشل في الحصول على البيانات المالية'
+            }), 500
+        
+        # حساب المؤشرات التقنية
+        technical_indicators = financial_service.get_technical_indicators(asset_data)
+        
+        # توليد التنبؤ
+        prediction = financial_service.generate_prediction(asset_data, technical_indicators, timeframe)
+        
+        # إعداد الاستجابة
+        response = {
+            'success': True,
+            'prediction': prediction['direction'],
+            'confidence': prediction['confidence'],
+            'asset_data': {
+                'symbol': asset_data['symbol'],
+                'current_price': asset_data['current_price'],
+                'change': asset_data['change'],
+                'change_percent': asset_data['change_percent'],
+                'volume': asset_data['volume'],
+                'high': asset_data['high'],
+                'low': asset_data['low'],
+                'data_source': asset_data.get('data_source', 'unknown')
+            },
+            'technical_analysis': {
+                'rsi': technical_indicators['rsi'],
+                'macd': technical_indicators['macd'],
+                'bollinger_bands': technical_indicators['bollinger_bands'],
+                'stochastic': technical_indicators['stochastic'],
+                'volume_analysis': technical_indicators['volume_analysis']
+            },
+            'detailed_analysis': prediction['analysis'],
+            'factors': prediction['factors'],
+            'timestamp': datetime.now().isoformat(),
+            'timeframe': timeframe,
+            'market': market,
+            'asset': asset
+        }
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        print(f"خطأ في التنبؤ: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': f'خطأ في معالجة الطلب: {str(e)}'
+        }), 500
+
+@financial_bp.route('/asset-data', methods=['GET'])
+def get_asset_data():
+    """
+    الحصول على بيانات الأصل المالي فقط
+    """
+    try:
+        asset = request.args.get('asset', 'EUR/USD')
+        market = request.args.get('market', 'forex')
+        timeframe = request.args.get('timeframe', '1m')
+        
+        asset_data = financial_service.get_asset_data(asset, market, timeframe)
+        
+        if asset_data:
+            return jsonify({
+                'success': True,
+                'data': asset_data
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'فشل في الحصول على البيانات'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@financial_bp.route('/markets', methods=['GET'])
+def get_available_markets():
+    """
+    الحصول على الأسواق والأصول المتاحة
+    """
+    try:
+        markets = {
+            'forex': ['EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'USD/CHF'],
+            'crypto': ['BTC/USD', 'ETH/USD', 'ADA/USD', 'DOT/USD'],
+            'commodities': ['Gold', 'Silver', 'Oil', 'Natural Gas'],
+            'stocks': ['Apple', 'Microsoft', 'Google', 'Amazon', 'Tesla']
+        }
+        
+        return jsonify({
+            'success': True,
+            'markets': markets
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@financial_bp.route('/health', methods=['GET'])
+def health_check():
+    """
+    فحص صحة الخدمة
+    """
+    return jsonify({
+        'status': 'healthy',
+        'service': 'financial_data',
+        'timestamp': datetime.now().isoformat(),
+        'version': '2.0'
+    })
 
 def run_async(coro):
     """تشغيل دالة async في بيئة sync"""

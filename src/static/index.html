@@ -398,33 +398,35 @@
       btn.classList.toggle('selected', tradeType === 'OTC');
     }
     
-    const API_BASE_URL = 'https://0vhlizckl3qe.manus.space/api/financial';
+    const API_BASE_URL = 'https://nghki1cl7wd5.manus.space/api/financial';
 
     async function loadAssetData(asset) {
       try {
         showPriceInfo();
         
-        let endpoint = '';
-        if (selectedMarket === 'الأسهم') {
-          endpoint = `${API_BASE_URL}/stock/${asset}`;
-        } else if (selectedMarket === 'العملات') {
-          endpoint = `${API_BASE_URL}/forex/${asset}`;
-        } else if (selectedMarket === 'العملات المشفرة') {
-          endpoint = `${API_BASE_URL}/crypto/${asset}`;
-        } else if (selectedMarket === 'السلع') {
-          endpoint = `${API_BASE_URL}/commodity/${asset}`;
-        }
-        
-        const response = await fetch(endpoint);
+        // استخدام API الجديد للحصول على بيانات الأصل
+        const response = await fetch(`${API_BASE_URL}/asset-data?asset=${encodeURIComponent(asset)}&market=${encodeURIComponent(getMarketKey())}&timeframe=${encodeURIComponent(selectedTimeframe)}`);
         const data = await response.json();
         
-        if (data.success) {
-          updatePriceDisplay(data);
-          updateChart(data);
+        if (data.success && data.data) {
+          updatePriceDisplay(data.data);
+          updateChart(data.data);
+        } else {
+          console.error('فشل في تحميل البيانات:', data.error);
         }
       } catch (error) {
         console.error('خطأ في تحميل البيانات:', error);
       }
+    }
+    
+    function getMarketKey() {
+      const marketMap = {
+        'العملات': 'forex',
+        'العملات المشفرة': 'crypto', 
+        'السلع': 'commodities',
+        'الأسهم': 'stocks'
+      };
+      return marketMap[selectedMarket] || 'forex';
     }
     
     function updatePriceDisplay(data) {
@@ -432,13 +434,14 @@
       const priceChange = document.getElementById('priceChange');
       const volume = document.getElementById('volume');
       
-      if (data.price) {
-        currentPrice.textContent = `$${data.price.toFixed(2)}`;
+      if (data.current_price) {
+        currentPrice.textContent = `$${data.current_price.toFixed(4)}`;
       }
       
       if (data.change !== undefined) {
-        const changeText = data.change > 0 ? `+${data.change.toFixed(2)}` : data.change.toFixed(2);
-        priceChange.textContent = changeText;
+        const changeText = data.change > 0 ? `+${data.change.toFixed(4)}` : data.change.toFixed(4);
+        const changePercent = data.change_percent ? ` (${data.change_percent.toFixed(2)}%)` : '';
+        priceChange.textContent = changeText + changePercent;
         priceChange.style.color = data.change > 0 ? '#68d391' : '#fc8181';
       }
       
@@ -523,19 +526,50 @@
       setLoadingState(true);
       
       try {
-        const response = await fetch(`${API_BASE_URL}/predict?asset=${selectedAsset}&timeframe=${selectedTimeframe}&market=${selectedMarket}`);
+        const requestData = {
+          asset: selectedAsset,
+          timeframe: selectedTimeframe,
+          market: getMarketKey()
+        };
+        
+        const response = await fetch(`${API_BASE_URL}/predict`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(requestData)
+        });
+        
         const data = await response.json();
         
         if (data.success) {
-          const direction = data.prediction === 'up' ? 'صعود' : 'هبوط';
-          const resultText = `${direction} (${data.confidence}%)`;
-          showResult(resultText, data.prediction === 'up' ? 'success' : 'danger');
-          showPredictionDetails(data.factors);
+          const direction = data.prediction;
+          const confidence = data.confidence;
+          const resultText = `${direction} (${confidence}%)`;
+          
+          const resultType = direction === 'صعود' ? 'success' : direction === 'هبوط' ? 'danger' : 'warning';
+          showResult(resultText, resultType);
+          
+          // عرض تفاصيل التحليل
+          if (data.technical_analysis) {
+            showTechnicalAnalysis(data.technical_analysis);
+          }
+          
+          if (data.detailed_analysis) {
+            showDetailedAnalysis(data.detailed_analysis);
+          }
+          
+          // تحديث بيانات الأسعار
+          if (data.asset_data) {
+            updatePriceDisplay(data.asset_data);
+          }
+          
         } else {
-          showResult('خطأ في التنبؤ', 'danger');
+          showResult(`خطأ: ${data.error || 'فشل في التنبؤ'}`, 'danger');
         }
       } catch (error) {
-        showResult('خطأ في الاتصال', 'danger');
+        console.error('خطأ في الاتصال:', error);
+        showResult('خطأ في الاتصال بالخادم', 'danger');
       } finally {
         setLoadingState(false);
       }
@@ -636,4 +670,202 @@
   </script>
 </body>
 </html>
+
+
+    
+    function showTechnicalAnalysis(technicalData) {
+      // إنشاء قسم التحليل التقني إذا لم يكن موجوداً
+      let technicalDiv = document.getElementById('technicalAnalysis');
+      if (!technicalDiv) {
+        technicalDiv = document.createElement('div');
+        technicalDiv.id = 'technicalAnalysis';
+        technicalDiv.className = 'technical-analysis';
+        technicalDiv.innerHTML = `
+          <h3>التحليل التقني المتقدم</h3>
+          <div class="indicators-grid">
+            <div class="indicator-item">
+              <span class="indicator-label">RSI:</span>
+              <span class="indicator-value" id="rsiValue">--</span>
+            </div>
+            <div class="indicator-item">
+              <span class="indicator-label">MACD:</span>
+              <span class="indicator-value" id="macdValue">--</span>
+            </div>
+            <div class="indicator-item">
+              <span class="indicator-label">Bollinger Bands:</span>
+              <span class="indicator-value" id="bbValue">--</span>
+            </div>
+            <div class="indicator-item">
+              <span class="indicator-label">Stochastic:</span>
+              <span class="indicator-value" id="stochValue">--</span>
+            </div>
+          </div>
+        `;
+        
+        // إضافة الأنماط
+        const style = document.createElement('style');
+        style.textContent = `
+          .technical-analysis {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          .technical-analysis h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 18px;
+          }
+          .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+          }
+          .indicator-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+          }
+          .indicator-label {
+            color: #a0aec0;
+            font-weight: 500;
+          }
+          .indicator-value {
+            color: #00d4ff;
+            font-weight: bold;
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // إدراج بعد قسم النتائج
+        const resultSection = document.querySelector('.result-display').parentNode;
+        resultSection.appendChild(technicalDiv);
+      }
+      
+      // تحديث القيم
+      if (technicalData.rsi) {
+        document.getElementById('rsiValue').textContent = technicalData.rsi;
+      }
+      
+      if (technicalData.macd) {
+        document.getElementById('macdValue').textContent = 
+          `${technicalData.macd.macd.toFixed(4)} / ${technicalData.macd.signal.toFixed(4)}`;
+      }
+      
+      if (technicalData.bollinger_bands) {
+        document.getElementById('bbValue').textContent = 
+          `${technicalData.bollinger_bands.upper.toFixed(4)} / ${technicalData.bollinger_bands.lower.toFixed(4)}`;
+      }
+      
+      if (technicalData.stochastic) {
+        document.getElementById('stochValue').textContent = 
+          `%K: ${technicalData.stochastic.k} / %D: ${technicalData.stochastic.d}`;
+      }
+      
+      technicalDiv.style.display = 'block';
+    }
+    
+    function showDetailedAnalysis(analysisData) {
+      // إنشاء قسم التحليل المفصل إذا لم يكن موجوداً
+      let detailedDiv = document.getElementById('detailedAnalysis');
+      if (!detailedDiv) {
+        detailedDiv = document.createElement('div');
+        detailedDiv.id = 'detailedAnalysis';
+        detailedDiv.className = 'detailed-analysis';
+        detailedDiv.innerHTML = `
+          <h3>التحليل المفصل</h3>
+          <div class="analysis-grid">
+            <div class="analysis-item">
+              <span class="analysis-label">النتيجة التقنية:</span>
+              <span class="analysis-value" id="technicalScore">--</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">معنويات السوق:</span>
+              <span class="analysis-value" id="marketSentiment">--</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">مستوى المخاطر:</span>
+              <span class="analysis-value" id="riskLevel">--</span>
+            </div>
+            <div class="analysis-item">
+              <span class="analysis-label">تحليل الإطار الزمني:</span>
+              <span class="analysis-value" id="timeframeAnalysis">--</span>
+            </div>
+          </div>
+        `;
+        
+        // إضافة الأنماط
+        const style = document.createElement('style');
+        style.textContent = `
+          .detailed-analysis {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+          }
+          .detailed-analysis h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 18px;
+          }
+          .analysis-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+          }
+          .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+          }
+          .analysis-label {
+            color: #a0aec0;
+            font-weight: 500;
+          }
+          .analysis-value {
+            color: #00d4ff;
+            font-weight: bold;
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // إدراج بعد قسم التحليل التقني
+        const technicalSection = document.getElementById('technicalAnalysis');
+        if (technicalSection) {
+          technicalSection.parentNode.insertBefore(detailedDiv, technicalSection.nextSibling);
+        } else {
+          const resultSection = document.querySelector('.result-display').parentNode;
+          resultSection.appendChild(detailedDiv);
+        }
+      }
+      
+      // تحديث القيم
+      if (analysisData.technical_score !== undefined) {
+        document.getElementById('technicalScore').textContent = `${analysisData.technical_score}%`;
+      }
+      
+      if (analysisData.market_sentiment) {
+        document.getElementById('marketSentiment').textContent = analysisData.market_sentiment;
+      }
+      
+      if (analysisData.risk_level) {
+        document.getElementById('riskLevel').textContent = analysisData.risk_level;
+      }
+      
+      if (analysisData.timeframe_analysis) {
+        document.getElementById('timeframeAnalysis').textContent = analysisData.timeframe_analysis;
+      }
+      
+      detailedDiv.style.display = 'block';
+    }
 
